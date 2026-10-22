@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>威胁情报映射分析系统</title>
+  <link rel="stylesheet" href="css/style.css?v=20260924s" />
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <div>
+        <h1>威胁情报映射分析系统</h1>
+        <p>多格式情报接入 → ATT&amp;CK / IOC 映射 → 情报分析（可选大模型辅助）</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="stats-board" aria-label="统计指标">
+      <article class="stats-group" data-group="mapping">
+        <header class="stats-group-head">
+          <h2 class="stats-group-title">ATT&amp;CK 技战术映射</h2>
+          <p class="stats-group-desc" id="statMappedSub">本次待执行映射</p>
+        </header>
+        <div class="stats-group-metrics">
+          <div class="stat-metric is-history">
+            <span class="stat-metric-label">历史情报映射总计</span>
+            <div class="stat-metric-row">
+              <strong class="stat-metric-value" id="statMappedCum">0</strong>
+              <span class="stat-metric-unit">条</span>
+            </div>
+          </div>
+          <div class="stat-metric is-session fill-zero" id="metricMappedSession">
+            <span class="stat-metric-label">命中战术</span>
+            <div class="stat-metric-row">
+              <strong class="stat-metric-value" id="statMappedSession">0</strong>
+              <span class="stat-metric-unit" id="statTacticUnit">/14</span>
+              <span class="stat-metric-hint">本次映射命中个数</span>
+            </div>
+          </div>
+          <div class="stat-metric is-session fill-zero" id="metricTechniqueSession">
+            <span class="stat-metric-label">命中技术</span>
+            <div class="stat-metric-row">
+              <strong class="stat-metric-value" id="statAccuracy">0</strong>
+              <span class="stat-metric-unit">个</span>
+              <span class="stat-metric-hint">本次映射命中个数</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="stats-group" data-group="ioc">
+        <header class="stats-group-head">
+          <h2 class="stats-group-title">IOC 指标抽取</h2>
+          <p class="stats-group-desc" id="statIocSub">等待映射后统计</p>
+        </header>
+        <div class="stats-group-metrics">
+          <div class="stat-metric is-history">
+            <span class="stat-metric-label">历史 IOC 累计</span>
+            <div class="stat-metric-row">
+              <strong class="stat-metric-value" id="statIocCum">0</strong>
+              <span class="stat-metric-unit">个</span>
+            </div>
+          </div>
+          <div class="stat-metric is-session fill-zero">
+            <span class="stat-metric-label">本次 IOC 各类别统计</span>
+            <div class="stat-metric-row">
+              <strong class="stat-metric-value" id="statIocSession">0</strong>
+              <span class="stat-metric-unit">个</span>
+            </div>
+          </div>
+          <div class="stat-metric is-session fill-zero" id="metricIocIpSession">
+            <span class="stat-metric-label">本次抽取涉及 IP</span>
+            <div class="stat-metric-row">
+              <strong class="stat-metric-value" id="statIocIp">0</strong>
+              <span class="stat-metric-unit">个</span>
+              <span class="stat-metric-hint">ipv4 / ipv6</span>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel" id="panelInput">
+      <div class="panel-head">
+        <div class="panel-head-text">
+          <h2>情报接入与映射</h2>
+          <p>支持 CTI 报告 / STIX / MISP / CSV·TSV IOC / CEF·LEEF / XML / NDJSON / 叙述文本；左侧上传文件，右侧粘贴文本</p>
+        </div>
+        <div class="panel-head-actions">
+          <button type="button" class="btn btn-ghost" id="btnPickSample">内置情报样本</button>
+        </div>
+      </div>
+
+      <div class="map-input-grid">
+        <div class="map-input-col" id="colFile">
+          <label class="field-label" for="fileDrop">威胁情报文件上传</label>
+          <div class="file-drop" id="fileDrop" data-state="idle">
+            <input type="file" id="fileInput" accept=".json,.csv,.tsv,.txt,.ndjson,.xml,.log,.cef,.leef,.syslog,.html,.htm,.mhtml,.mht,.eml,.md,.yaml,.yml,.pdf,text/*,application/json,application/pdf" hidden />
+            <div class="file-drop-inner">
+              <div class="file-idle" id="fileIdle">
+                <strong>拖拽或点击上传情报文件</strong>
+                <p>CTI JSON / PDF / STIX / MISP / IOC CSV / 日志文本等</p>
+              </div>
+              <div class="file-selected-panel" id="fileSelectedPanel" hidden>
+                <div class="file-selected-top">
+                  <div class="file-meta">
+                    <strong id="fileName"></strong>
+                    <span id="fileMeta" class="file-meta-sub"></span>
+                  </div>
+                  <button type="button" class="file-remove-btn" id="btnClearFile" title="移除文件" aria-label="移除文件">×</button>
+                </div>
+                <div class="file-progress" id="fileProgress" hidden>
+                  <div class="file-progress-track"><i id="fileProgressFill"></i></div>
+                  <span id="fileProgressText">处理中…</span>
+                </div>
+                <span class="file-badge" id="fileBadge">已选择 · 待映射</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="map-input-col map-text-block" id="colText">
+          <label class="field-label" for="intelText">粘贴威胁情报</label>
+          <textarea id="intelText" rows="10" placeholder="粘贴威胁情报，例如 CTI 报告 JSON、STIX bundle、IOC 列表或叙述文本…"></textarea>
+        </div>
+      </div>
+
+      <div class="input-source-bar" id="inputSourceBar" data-state="empty">
+        <p class="input-source-status" id="inputSourceStatus">请上传文件或粘贴情报文本</p>
+        <div class="input-source-pick" id="inputSourcePick" hidden>
+          <span class="input-source-pick-label">本次映射使用：</span>
+          <label class="source-option">
+            <input type="radio" name="inputSource" id="sourceFile" value="file" />
+            <span>文件</span>
+          </label>
+          <label class="source-option">
+            <input type="radio" name="inputSource" id="sourceText" value="text" />
+            <span>文本</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="btn-row action-toolbar">
+        <div class="btn-row-main">
+          <button type="button" class="btn btn-primary" id="btnMap">执行映射</button>
+          <button type="button" class="btn btn-persist" id="btnSave" hidden>存入映射结果</button>
+        </div>
+        <div class="btn-row-side">
+          <button type="button" class="llm-toggle llm-toggle--compact" id="btnLlmMapToggle" data-on="false" title="默认关闭；开启后「映射」将调用大模型与向量辅助纠偏">
+            <span class="switch" aria-hidden="true"></span>
+            <span class="llm-label">大模型辅助映射</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="map-result-block">
+        <div class="panel-subhead">
+          <h3>映射结果</h3>
+          <p class="result-hint" id="batchHint">执行映射后在此展示；点击行查看详情</p>
+        </div>
+        <div class="table-wrap result-table-wrap">
+          <div class="table-scroll" id="resultTableScroll">
+            <div class="result-empty-msg" id="resultEmptyMsg">暂无数据</div>
+            <table class="data-table" id="resultTable">
+              <thead id="resultHead">
+                <tr>
+                  <th>标题</th>
+                  <th>类型</th>
+                  <th>技术</th>
+                  <th>战术</th>
+                  <th>方式</th>
+                  <th>置信度</th>
+                </tr>
+              </thead>
+              <tbody id="resultBody">
+                <tr><td colspan="6" class="empty-state">暂无数据</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panelCoverage">
+      <div class="panel-head">
+        <div class="panel-head-text">
+          <h2>ATT&amp;CK 技战术覆盖</h2>
+          <p>按战术列展示，下方列出本次映射命中的技术（对齐 ATT&amp;CK 矩阵布局）</p>
+        </div>
+        <button type="button" class="btn btn-persist" id="btnSaveStats" hidden>存入统计</button>
+      </div>
+      <div class="matrix is-empty" id="coverageMatrix">
+        <div class="empty-state">映射后展示技战术覆盖矩阵</div>
+      </div>
+    </section>
+
+    <section class="panel" id="panelAnalysis">
+      <div class="panel-head">
+        <div class="panel-head-text">
+          <h2>情报分析</h2>
+          <p id="analysisSub">规则摘要或大模型研判结果（需先完成映射）</p>
+        </div>
+        <div class="panel-head-actions analysis-actions">
+          <button type="button" class="llm-toggle llm-toggle--compact" id="btnLlmAnalyzeToggle" data-on="false" title="默认关闭；开启后「分析」将调用大模型生成研判">
+            <span class="switch" aria-hidden="true"></span>
+            <span class="llm-label">大模型辅助分析</span>
+          </button>
+          <button type="button" class="btn btn-primary" id="btnAnalyze">分析</button>
+        </div>
+      </div>
+      <div class="analysis-box is-placeholder" id="analysisBox">完成映射后，点击「分析」在此展示结果</div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>威胁情报映射分析系统</span>
+    <span id="batchIdLabel"></span>
+    <span id="apiStatus" class="status-pill">API 检测中…</span>
+  </footer>
+
+  <div class="modal-backdrop" id="detailModal" hidden>
+    <div class="modal-card detail-modal-card" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="modal-head detail-modal-head">
+        <h3 id="detailTitle">映射详情</h3>
+        <button type="button" class="modal-close-x" id="detailClose" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body detail-grid" id="detailBody"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="sampleModal" hidden>
+    <div class="modal-card sample-modal-card" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <h3>内置情报样本</h3>
+        <button type="button" class="modal-close-x" id="sampleClose" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body sample-modal-body">
+        <p class="sample-modal-hint">点击样本查看预览，确认后再填入粘贴区</p>
+        <div class="sample-modal-main">
+          <div class="sample-list" id="sampleList"></div>
+          <pre class="sample-preview" id="samplePreview">请选择左侧样本查看内容预览</pre>
+        </div>
+        <div class="sample-modal-actions">
+          <button type="button" class="btn" id="sampleCancel">取消</button>
+          <button type="button" class="btn btn-primary" id="sampleConfirm" disabled>确定填入</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="sourceModal" hidden>
+    <div class="modal-card modal-card-sm source-modal-card" role="dialog" aria-modal="true" aria-labelledby="sourceModalTitle">
+      <div class="modal-head source-modal-head">
+        <h3 id="sourceModalTitle">选择映射来源</h3>
+        <button type="button" class="modal-close-x" id="sourceModalClose" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body source-modal-body">
+        <p id="sourceModalMsg">检测到文件与文本同时存在，请确认本次映射使用哪一项。</p>
+        <div class="source-modal-actions">
+          <button type="button" class="source-choice-btn" id="sourceModalFile">使用文件</button>
+          <button type="button" class="source-choice-btn" id="sourceModalText">使用文本</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js?v=20260924s"></script>
+</body>
+</html>

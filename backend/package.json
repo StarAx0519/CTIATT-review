@@ -1,0 +1,25 @@
+{
+  "name": "qy-threat-intel-backend",
+  "version": "1.0.0",
+  "description": "Offline CTI document extraction and ATT&CK evidence-cascade mapping",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js",
+    "init-db": "node scripts/initDb.js",
+    "build-attck": "node scripts/buildAttckFromMitre.js",
+    "build-attck:local": "node scripts/buildAttckFromMitre.js --file ../data/enterprise-attack-src.json"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "mongoose": "^7.6.3",
+    "multer": "^1.4.5-lts.1",
+    "pdfjs-dist": "^4.10.38",
+    "uuid": "^9.0.1"
+  }
+}
